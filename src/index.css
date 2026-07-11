@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+body {
+    /* @apply bg-amber-100; */
+    background: #F5F5F6;
+}
+
+@theme {
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
