@@ -7,7 +7,7 @@ import UnexpectedError from "@/shared/components/UnexpectedError";
 import ResultsNotFund from "@/shared/components/ResultsNotFund.tsx";
 
 const ChannelList = () => {
-    const [channelsList, setChannelsList] = useState<Channel[]>([])
+    const [channelsList, setChannelsList] = useState<Channel[] | undefined>(undefined)
     const [page, ] = useState<number>(1);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [hasError, setHasError] = useState<boolean>(false)
@@ -46,7 +46,7 @@ const ChannelList = () => {
             </div>
             { isLoading && <Spinner /> }
 
-            {!isLoading && !hasError && <div className="bg-white border border-gray-300 rounded-md w-full">
+            {!isLoading && !hasError && (channelsList?.length ?? 0) > 0 && <div className="bg-white border border-gray-300 rounded-md w-full">
                 <table className="border-collapse table-auto w-full text-left">
                     <thead>
                     <tr className="bg-gray-200">
@@ -54,17 +54,19 @@ const ChannelList = () => {
                         <th className="font-normal text-gray-600">Origen</th>
                         <th className="font-normal text-gray-600">Negocio</th>
                         <th className="font-normal text-gray-600">Identificador</th>
+                        <th className="font-normal text-gray-600">Display</th>
                         <th className="font-normal text-gray-600">Creado</th>
                     </tr>
                     </thead>
                     <tbody>
-                    {channelsList.map(channel => (
+                    {channelsList?.map(channel => (
                         <ChannelItem
                             key={channel.id}
                             id={channel.id}
                             channel={channel.channel}
                             business={channel.business}
                             provider_id={channel.provider_id}
+                            display_name={channel.display_name}
                             created_at={channel.created_at}
                             updated_at={channel.updated_at}
                         />
@@ -75,7 +77,7 @@ const ChannelList = () => {
             }
 
             { hasError && !isLoading && <UnexpectedError onRetry={handleRecover}/>}
-            { channelsList.length == 0 && !isLoading && <ResultsNotFund subtitle="No pudimos encontrar canales"/>}
+            { channelsList !== undefined && channelsList.length === 0 && !isLoading && <ResultsNotFund subtitle="No pudimos encontrar canales"/>}
         </div>
     )
 }

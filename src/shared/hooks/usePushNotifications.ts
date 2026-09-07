@@ -1,17 +1,44 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
 import {
     registerServiceWorker,
     requestPermission,
-    saveSubscription,
     subscribeToPush,
 } from "@/shared/services/pushNotification";
+import {
+    createNotificationSubscription,
+    getNotificationSubscription,
+    updateNotificationSubscription,
+    type NotificationSubscription,
+} from "@/shared/services/notificationSubscription";
 
 export function usePushNotifications() {
+
+    const [isChecking, setIsChecking] = useState(false);
+
+    const checkSubscription = useCallback(async (): Promise<NotificationSubscription | null> => {
+        setIsChecking(true);
+        try {
+            const response = await getNotificationSubscription();
+            return response.data ?? null;
+        } catch (error) {
+            console.error(error);
+            return null;
+        } finally {
+            setIsChecking(false);
+        }
+    }, []);
 
     const subscribe = useCallback(async () => {
 
         try {
+
+            const existing = await checkSubscription();
+
+            if (existing) {
+                await updateNotificationSubscription({ enabled: true });
+                return;
+            }
 
             await registerServiceWorker();
 
@@ -24,9 +51,10 @@ export function usePushNotifications() {
 
             const subscription = await subscribeToPush();
 
-            console.log(subscription);
-
-            await saveSubscription(subscription);
+            await createNotificationSubscription({
+                id: crypto.randomUUID(),
+                payload: subscription.toJSON(),
+            });
 
             alert("Notificaciones activadas");
 
@@ -34,9 +62,20 @@ export function usePushNotifications() {
             console.error(error);
         }
 
+    }, [checkSubscription]);
+
+    const unsubscribe = useCallback(async () => {
+        try {
+            await updateNotificationSubscription({ enabled: false });
+        } catch (error) {
+            console.error(error);
+        }
     }, []);
 
     return {
         subscribe,
+        unsubscribe,
+        checkSubscription,
+        isChecking,
     };
 }
