@@ -1,6 +1,6 @@
 const PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
     const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
 
     const base64 = (base64String + padding)
@@ -8,10 +8,13 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
         .replace(/_/g, "/");
 
     const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
 
-    return Uint8Array.from(
-        [...rawData].map((char) => char.charCodeAt(0))
-    );
+    for (let i = 0; i < rawData.length; i++) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+
+    return outputArray;
 }
 
 export async function registerServiceWorker() {
@@ -42,15 +45,4 @@ export async function subscribeToPush(): Promise<PushSubscription> {
     });
 
     return subscription;
-}
-
-export async function saveSubscription(subscription: PushSubscription) {
-    console.log(PUBLIC_KEY);
-    await fetch("/api/v1/subscribe", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(subscription),
-    });
 }

@@ -11,3 +11,7 @@ export interface Response<T> {
     message: string
     data?: T
 }
+
+export type Response1<T> = Omit<Response<T>, "data"> & {
+    results: T[];
+};

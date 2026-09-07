@@ -1,50 +1,68 @@
 import { getConversations } from "@/app/features/conversations/services/conversation.ts";
 import type { Conversation } from "@/app/features/conversations/types/Conversation.ts";
 import ConversationItem from "@/app/features/conversations/components/ConversationItem.tsx";
-import { useEffect } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Spinner from "@/shared/components/Spinner.tsx";
+import UnexpectedError from "@/shared/components/UnexpectedError";
+import ResultsNotFund from "@/shared/components/ResultsNotFund.tsx";
+import Paginator from "@/shared/components/Paginator.tsx";
 
 const ConversationList = () => {
-    const [conversationsList, setConversationsList] = useState<Conversation[]>([])
-    const [page, ] = useState(1);
+    const [conversationsList, setConversationsList] = useState<Conversation[] | undefined>(undefined)
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [hasError, setHasError] = useState<boolean>(false)
 
-    const fetchCustomers = async (page: number, name?: string) => {
+    const fetchConversations = async (page: number, name?: string) => {
         try {
             const response = await getConversations({page, name});
             setConversationsList(response.results);
-            console.log(response);
+            setTotalPages(response.pages);
         } catch (err) {
+            setHasError(true);
             console.log(err);
         } finally {
-            console.log("Error")
+            setIsLoading(false);
         }
     };
-     useEffect(() => {
-         try {
-            fetchCustomers(page).catch(console.error);
-         } finally {
-             console.log("Error")
-         }
-     }, [page]);
+
+    const handleRecover = async () => {
+        setIsLoading(true);
+        setHasError(false);
+        await fetchConversations(page)
+    }
+
+    const handlePageChange = (newPage: number) => {
+        if (newPage === page) return;
+        setIsLoading(true);
+        setPage(newPage);
+    };
+
+    useEffect(() => {
+        fetchConversations(page).catch(console.error);
+    }, [page]);
 
     return (
-        <div className="container items-center justify-center">
+        <div className="container flex flex-col items-center justify-center overflow-x-auto w-full">
             <div className="w-full mb-3">
                 <h1 className="font-normal text-lg pl-5 text-gray-600">Conversaciones</h1>
             </div>
-            <div className="bg-white border border-gray-300 rounded-md">
-                <table className="border-collapse table-auto w-full text-left">
+            { isLoading && <Spinner /> }
+
+            {!isLoading && !hasError && (conversationsList?.length ?? 0) > 0 && <div className="bg-white border border-gray-300 rounded-md w-full overflow-x-auto">
+                <table className="border-collapse table-auto w-full min-w-175 text-left">
                     <thead>
                     <tr className="bg-gray-200">
-                        <th className="font-normal text-black px-4 py-3">Id</th>
-                        <th className="font-normal text-black">Canal</th>
-                        <th className="font-normal text-black">Contacto</th>
-                        <th className="font-normal text-black">Nombre</th>
-                        <th className="font-normal text-black">Fecha creación</th>
+                        <th className="font-normal text-gray-600 px-4 py-3">Id</th>
+                        <th className="font-normal text-gray-600">Canal</th>
+                        <th className="font-normal text-gray-600">Contacto</th>
+                        <th className="font-normal text-gray-600">Nombre</th>
+                        <th className="font-normal text-gray-600">Fecha creación</th>
                     </tr>
                     </thead>
                     <tbody>
-                    {conversationsList.map(conversation => (
+                    {conversationsList?.map(conversation => (
                         <ConversationItem
                             key={conversation.id}
                             id={ conversation.id }
@@ -58,6 +76,18 @@ const ConversationList = () => {
                     </tbody>
                 </table>
             </div>
+            }
+
+            {!isLoading && !hasError && conversationsList !== undefined && conversationsList.length > 0 && (
+                <Paginator
+                    currentPage={page}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                />
+            )}
+
+            { hasError && !isLoading && <UnexpectedError onRetry={handleRecover}/>}
+            { conversationsList !== undefined && conversationsList.length === 0 && !isLoading && <ResultsNotFund subtitle="No pudimos encontrar conversaciones"/>}
         </div>
     )
 }
